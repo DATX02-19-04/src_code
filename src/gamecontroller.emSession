@@ -13,7 +13,6 @@
  <Project>
   <ProjectSessionItem path="BLE_Game_Controller"/>
   <ProjectSessionItem path="BLE_Game_Controller;BLE_Game_Controller"/>
-  <ProjectSessionItem path="BLE_Game_Controller;BLE_Game_Controller;Application"/>
  </Project>
  <Register1/>
  <Register2/>
