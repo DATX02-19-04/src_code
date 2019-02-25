@@ -530,7 +530,7 @@ static void gap_params_init(void)
                                           strlen(DEVICE_NAME));
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_HID_GAMEPAD);
+    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_HID_JOYSTICK);
     APP_ERROR_CHECK(err_code);
 
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
@@ -646,7 +646,7 @@ static void hids_init(void)
     static uint8_t                     report_map_data[] =
     {
       0x05,   0x01,                    // USAGE_PAGE (Generic Desktop)
-        0x09,   0x05,                    // USAGE (Game Pad) - Hut1_12v2.pdf p28 of 128
+        0x09,   0x04,                    // USAGE (Game Pad) - Hut1_12v2.pdf p28 of 128
         0xA1,   0x01,                    // COLLECTION (Application)
 
           
@@ -670,7 +670,7 @@ static void hids_init(void)
             0x29, 0x0c,
             0x15,   0x00,                    //     LOGICAL_MINIMUM (0)
             0x25,   0x01,                    //     LOGICAL_MAXIMUM (1)
-            0x95,   0x0c,                    //     REPORT_COUNT (16)
+            0x95,   0x0c,                    //     REPORT_COUNT (12)
             0x75,   0x01,                    //     REPORT_SIZE (1)
 
             0x81,   0x02,                    //     INPUT (Data,Var,Abs)
@@ -707,28 +707,36 @@ static void hids_init(void)
   0x05,   0x01,                    // USAGE_PAGE (Generic Desktop)
   0x09,   0x05,                    // USAGE (Game Pad) - Hut1_12v2.pdf p28 of 128
   0xA1,   0x01,                    // COLLECTION (Application)
+
   0xA1,   0x00,                    //   COLLECTION (Physical)
   0x05,   0x09,                    //     USAGE_PAGE (Button)
   0x19,   0x01,                    //     USAGE_MINIMUM (Button 1)
   0x29,   0x04,                    //     USAGE_MAXIMUM (Button 16)
+
   0x15,   0x00,                    //     LOGICAL_MINIMUM (0)
   0x25,   0x01,                    //     LOGICAL_MAXIMUM (1)
   0x95,   0x10,                    //     REPORT_COUNT (16)
   0x75,   0x01,                    //     REPORT_SIZE (1)
+
   0x81,   0x02,                    //     INPUT (Data,Var,Abs)
+
   0x05,   0x01,                    //     USAGE_PAGE (Generic Desktop)
   0x09,   0x30,                    //     USAGE (X)
   0x09,   0x31,                    //     USAGE (Y)
   0x09,   0x32,                    //     USAGE (Z) - Hut1_12v2.pdf p26 = represents R X-axis
   0x09,   0x33,                    //     USAGE (Rx) - Hut1_12v2.pdf p26 = represents R Y-axis
+
   0x15,   0x81,                    //     LOGICAL_MINIMUM (-127)
   0x25,   0x7F,                    //     LOGICAL_MAXIMUM (127)
   0x75,   0x08,                    //     REPORT_SIZE (8)
   0x95,   0x04,                    //     REPORT_COUNT (4)
+
   0x81,   0x06,                    //     INPUT (Data,Var,Abs) - absolute for joysticks ( != rel for mouse )
   0xC0,                            //   END_COLLECTION
+
   0xc0 ]                           // END_COLLECTION
 );
+
 exports.sendGamepadState = function(btnState, x1, y1, x2, y2, cb){
   NRF.sendHIDReport([
     //0x06,                 // bLength
@@ -1687,10 +1695,11 @@ void button_function(void *p_context){
         
 
         if(button_state != prev_state){
-          uint16_t buffer[1];
+          uint16_t buffer;
           uint32_t err_code;
 
-          buffer[0] = 0;
+          buffer = 0;
+          //buffer[1] = 0;
 
 
           for(int i = 0; i<8; i++){
@@ -1703,10 +1712,7 @@ void button_function(void *p_context){
               //printf("No buttons\n");
               printf("\e[1;1H\e[2J");
 
-              uint8_t buffer[2];
-              uint32_t err_code;
-
-              buffer[0] = 0;
+              buffer = 0;
 
 
           }
@@ -1716,20 +1722,20 @@ void button_function(void *p_context){
               nrf_gpio_pin_set(LED_PINS[0]);
 
               
-              buffer[0] = buffer[0] | PAD_BTN_0;
+              buffer = buffer | PAD_BTN_0;
           } 
           if(!(button_state & BTN_MASK(DPAD_UP))){
               printf("dpad up\n");
               nrf_gpio_pin_set(LED_PINS[1]);
 
-              buffer[0] = buffer[0] | PAD_BTN_up;
+              buffer = buffer | PAD_BTN_up;
 
           } 
           if(!(button_state & BTN_MASK(DPAD_DOWN))){
               printf("dpad down\n");
               nrf_gpio_pin_set(LED_PINS[2]);
               
-              buffer[0] = buffer[0] | PAD_BTN_down;
+              buffer = buffer | PAD_BTN_down;
             
 
           } 
@@ -1738,60 +1744,61 @@ void button_function(void *p_context){
               nrf_gpio_pin_set(LED_PINS[3]);
               
 
-              buffer[0] = buffer[0] | PAD_BTN_3;
+              buffer = buffer | PAD_BTN_3;
           } 
           if(!(button_state & BTN_MASK(BTN_A))){
               printf("btn A\n");
               nrf_gpio_pin_set(LED_PINS[4]);
 
-              buffer[0] = buffer[0] | PAD_BTN_4;
+              buffer = buffer | PAD_BTN_4;
           } 
           if(!(button_state & BTN_MASK(BTN_B))){
               printf("btn B\n");
               nrf_gpio_pin_set(LED_PINS[5]);
 
-              buffer[0] = buffer[0] | PAD_BTN_5;
+              buffer = buffer | PAD_BTN_5;
           } 
           if(!(button_state & BTN_MASK(BTN_X))){
               printf("btn X\n");
               nrf_gpio_pin_set(LED_PINS[6]);
 
-              buffer[0] = buffer[0] | PAD_BTN_6;
+              buffer = buffer | PAD_BTN_6;
           } 
           if(!(button_state & BTN_MASK(BTN_Y))){
               printf("btn Y\n");
               nrf_gpio_pin_set(LED_PINS[7]);
 
-              buffer[0] = buffer[0] | PAD_BTN_7;
+              buffer = buffer | PAD_BTN_7;
           }
           if(!(button_state & BTN_MASK(BTN_START))){
               printf("btn Y\n");
               nrf_gpio_pin_set(LED_PINS[7]);
 
-              buffer[0] = buffer[0] | PAD_BTN_8;
+              buffer = buffer | PAD_BTN_8;
           }
           if(!(button_state & BTN_MASK(BTN_SELCT))){
               printf("btn Y\n");
               nrf_gpio_pin_set(LED_PINS[7]);
 
-              buffer[0] = buffer[0] | PAD_BTN_9;
+              buffer = buffer | PAD_BTN_9;
           }
           if(!(button_state & BTN_MASK(BTN_L))){
               printf("btn Y\n");
               nrf_gpio_pin_set(LED_PINS[7]);
 
-              buffer[0] = buffer[0] | PAD_BTN_10;
+              buffer = buffer | PAD_BTN_10;
           }
           if(!(button_state & BTN_MASK(BTN_R))){
               printf("btn Y\n");
               nrf_gpio_pin_set(LED_PINS[7]);
 
-              buffer[0] = buffer[0] | PAD_BTN_11;
+              buffer = buffer | PAD_BTN_11;
           }
            
           prev_state = button_state;
           
-          ble_hids_inp_rep_send(&m_hids,0, 2, buffer, m_conn_handle);
+          printf("bit 16-8: %x\n", buffer);
+          ble_hids_inp_rep_send(&m_hids,0, 2, &buffer, m_conn_handle);
 
         }
 }
@@ -1821,10 +1828,12 @@ int main(void)
     nrf_gpio_cfg_sense_input(DPAD_LEFT,   NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(DPAD_RIGTH,  NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(DPAD_UP,     NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
+
     nrf_gpio_cfg_sense_input(BTN_A,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_B,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_X,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_Y,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
+
     nrf_gpio_cfg_sense_input(BTN_SELCT,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_START,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_L,       NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_HIGH);
