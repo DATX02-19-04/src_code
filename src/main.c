@@ -188,6 +188,8 @@
 #define BTN_PRV     11
 #define BTN_NXT     12
 
+#define BTN_RST     21
+
 #define BAT_VLT     3 // Analog in
 
 #define BTN_MASK(btn)(1<<btn)
@@ -1708,6 +1710,7 @@ void turn_off_leds(void *p_context){
   for(int i = 0; i<8; i++){
     nrf_gpio_pin_clear(LED_PINS[i]);
   }
+  app_timer_start(status_leds, TIMER_MS(100), NULL);
 }
 static bool leds_go_left;
 static int leds_pivot = 0;
@@ -1715,24 +1718,42 @@ static int leds_step = 0;
 
 void status_leds_function(void *p_context){
   if(!leds_go_left){
-    if(leds_pivot > 0 && leds_step == 1){
-      nrf_gpio_pin_clear(LED_PINS[leds_pivot - 1]);
-      leds_step = 0;
+    if(leds_pivot - leds_step < 2){
+      if(leds_pivot < 8){
+        nrf_gpio_pin_set(LED_PINS[leds_pivot]);
+      }
+      leds_pivot++;
     } else {
-      nrf_gpio_pin_set(LED_PINS[leds_pivot]);
-      leds_step = 1;
-    }
+      nrf_gpio_pin_clear(LED_PINS[leds_step]);
+      leds_step++;
 
-    leds_pivot++;
-
-    if(leds_pivot > 7){
-      leds_go_left = true;
-      leds_pivot--;
+      if(leds_step > 7){
+        leds_go_left = true;
+        leds_pivot = 7;
+        leds_step = 7;
+      }
     }
   } else {
+    if(leds_step - leds_pivot < 2){
+      if(leds_pivot >= 0){
+        nrf_gpio_pin_set(LED_PINS[leds_pivot]);
+      }
+      leds_pivot--;
+    } else {
+      nrf_gpio_pin_clear(LED_PINS[leds_step]);
+      leds_step--;
+
+      if(leds_step < 0){
+        leds_go_left = false;
+        leds_pivot = 0;
+        leds_step = 0;
+      }
+    }
 
 
   }
+
+
 }
 
 static uint32_t default_state;
@@ -1746,20 +1767,18 @@ void button_function(void *p_context){
 
           buffer = 0;
 
-          uint8_t new_button_state = default_state;
-
           if(button_state == default_state) {
               printf("\e[1;1H\e[2J");
           }
 
           if(!(button_state & BTN_MASK(DPAD_RIGTH))){
               buffer = buffer | PAD_BTN_RIGHT;
-          } else if(!(button_state & BTN_MASK(DPAD_LEFT))){
+          } else if(!(button_state & BTN_MASK(DPAD_LEFT))){ // Cannot go right and left at the same time
               buffer = buffer | PAD_BTN_LEFT;
           } 
           if(!(button_state & BTN_MASK(DPAD_UP))){
               buffer = buffer | PAD_BTN_UP;
-          } else if(!(button_state & BTN_MASK(DPAD_DOWN))){
+          } else if(!(button_state & BTN_MASK(DPAD_DOWN))){ // Cannot go up and down at the same time
               buffer = buffer | PAD_BTN_DOWN;
           } 
           
@@ -1788,6 +1807,7 @@ void button_function(void *p_context){
               buffer = buffer | PAD_BTN_RB;
           }
           if(!(button_state & BTN_MASK(BTN_PRV))){
+              app_timer_stop(status_leds);
               show_battery_status();
           }
           if(!(button_state & BTN_MASK(BTN_NXT))){
@@ -1845,6 +1865,7 @@ int main(void)
 
     nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
     nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+
     
     
     for(int i = 0; i < 8; i++){
@@ -1866,7 +1887,7 @@ int main(void)
     app_timer_create(&turn_off_leds_timer, APP_TIMER_MODE_SINGLE_SHOT, turn_off_leds);
     app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, status_leds_function);
     app_timer_start(button_wake_timer, TIMER_MS(50), NULL);
-    app_timer_start(status_leds, TIMER_MS(1000), NULL);
+    app_timer_start(status_leds, TIMER_MS(100), NULL);
     
     // Enter main loop.
     for (;;)
