@@ -1321,7 +1321,6 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
                                uint8_t    * p_data,
                                uint16_t     conn_handle)
 {
-    uint8_t p_data2 = 0xff;
     VERIFY_PARAM_NOT_NULL(p_hids);
     VERIFY_PARAM_NOT_NULL(p_data);
 
@@ -1344,7 +1343,7 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
             VERIFY_SUCCESS(err_code);
 
             p_host_rep_data += sizeof(ble_hids_client_context_t) + BOOT_KB_INPUT_REPORT_MAX_SIZE +
-                               BOOT_KB_OUTPUT_REPORT_MAX_SIZE;
+                               BOOT_KB_OUTPUT_REPORT_MAX_SIZE + BOOT_MOUSE_INPUT_REPORT_MAX_SIZE;
 
             // Store the new report data in host's context
             while (index < rep_index)
@@ -1355,7 +1354,7 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
 
             if (len <= p_hids->p_inp_rep_init_array[rep_index].max_len)
             {
-                memcpy(p_host_rep_data, p_data, 1);
+                memcpy(p_host_rep_data, p_data, len);
             }
             else
             {
@@ -1370,11 +1369,10 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
             hvx_params.offset = 0;
             hvx_params.p_len  = &hvx_len;
             hvx_params.p_data = p_data;
-printf("data to send: %x\n", p_data[0]);
+
             err_code = sd_ble_gatts_hvx(conn_handle, &hvx_params);
             if ((err_code == NRF_SUCCESS) && (*hvx_params.p_len != len))
             {
-                printf("error?: %d\n", err_code);
                 err_code = NRF_ERROR_DATA_SIZE;
             }
         }
