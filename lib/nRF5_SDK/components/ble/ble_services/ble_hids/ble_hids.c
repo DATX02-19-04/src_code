@@ -1270,12 +1270,7 @@ uint32_t ble_hids_init(ble_hids_t * p_hids, const ble_hids_init_t * p_hids_init)
             return err_code;
         }
 
-        // Add Boot Keyboard Output Report characteristic.
-        err_code = boot_kb_outp_rep_char_add(p_hids, p_hids_init);
-        if (err_code != NRF_SUCCESS)
-        {
-            return err_code;
-        }
+        
     }
 
     if (p_hids_init->is_mouse)
@@ -1318,10 +1313,10 @@ uint32_t ble_hids_init(ble_hids_t * p_hids, const ble_hids_init_t * p_hids_init)
 uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
                                uint8_t      rep_index,
                                uint16_t     len,
-                               uint8_t    * p_data,
+                               uint16_t    * p_data,
                                uint16_t     conn_handle)
 {
-    uint8_t p_data2 = 0xff;
+
     VERIFY_PARAM_NOT_NULL(p_hids);
     VERIFY_PARAM_NOT_NULL(p_data);
 
@@ -1336,7 +1331,7 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
             ble_gatts_hvx_params_t hvx_params;
             uint8_t                index   = 0;
             uint16_t               hvx_len = len;
-            uint8_t              * p_host_rep_data;
+            uint16_t              * p_host_rep_data;
 
             err_code = blcm_link_ctx_get(p_hids->p_link_ctx_storage,
                                          conn_handle,
@@ -1355,7 +1350,7 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
 
             if (len <= p_hids->p_inp_rep_init_array[rep_index].max_len)
             {
-                memcpy(p_host_rep_data, p_data, 1);
+                memcpy(p_host_rep_data, p_data, sizeof(p_data));
             }
             else
             {
@@ -1370,7 +1365,9 @@ uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
             hvx_params.offset = 0;
             hvx_params.p_len  = &hvx_len;
             hvx_params.p_data = p_data;
-printf("data to send: %x\n", p_data[0]);
+
+            printf("data to send: %x\n", *p_data);
+
             err_code = sd_ble_gatts_hvx(conn_handle, &hvx_params);
             if ((err_code == NRF_SUCCESS) && (*hvx_params.p_len != len))
             {
@@ -1389,186 +1386,6 @@ printf("data to send: %x\n", p_data[0]);
     }
 
     return err_code;
-}
-
-
-uint32_t ble_hids_boot_kb_inp_rep_send(ble_hids_t * p_hids,
-                                       uint16_t     len,
-                                       uint8_t    * p_data,
-                                       uint16_t     conn_handle)
-{
-    VERIFY_PARAM_NOT_NULL(p_hids);
-    VERIFY_PARAM_NOT_NULL(p_data);
-
-    uint32_t err_code;
-
-    if (conn_handle != BLE_CONN_HANDLE_INVALID)
-    {
-        ble_gatts_hvx_params_t hvx_params;
-        uint16_t               hvx_len = len;
-        uint8_t              * p_host_rep_data;
-
-        err_code = blcm_link_ctx_get(p_hids->p_link_ctx_storage,
-                                     conn_handle,
-                                     (void *) &p_host_rep_data);
-        VERIFY_SUCCESS(err_code);
-
-        p_host_rep_data += sizeof(ble_hids_client_context_t);
-
-        // Store the new value in the host's context
-        if (len <= BOOT_KB_INPUT_REPORT_MAX_SIZE)
-        {
-            memcpy(p_host_rep_data, p_data, len);
-        }
-
-        // Notify host
-        memset(&hvx_params, 0, sizeof(hvx_params));
-
-        hvx_params.handle = p_hids->boot_kb_inp_rep_handles.value_handle;
-        hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
-        hvx_params.offset = 0;
-        hvx_params.p_len  = &hvx_len;
-        hvx_params.p_data = p_data;
-
-        err_code = sd_ble_gatts_hvx(conn_handle, &hvx_params);
-        if ((err_code == NRF_SUCCESS) && (*hvx_params.p_len != len))
-        {
-            err_code = NRF_ERROR_DATA_SIZE;
-        }
-    }
-    else
-    {
-        err_code = NRF_ERROR_INVALID_STATE;
-    }
-
-    return err_code;
-}
-
-
-uint32_t ble_hids_boot_mouse_inp_rep_send(ble_hids_t * p_hids,
-                                          uint8_t      buttons,
-                                          int8_t       x_delta,
-                                          int8_t       y_delta,
-                                          uint16_t     optional_data_len,
-                                          uint8_t    * p_optional_data,
-                                          uint16_t     conn_handle)
-{
-    VERIFY_PARAM_NOT_NULL(p_hids);
-
-    uint32_t err_code;
-
-    if (conn_handle != BLE_CONN_HANDLE_INVALID)
-    {
-        uint16_t hvx_len = BOOT_MOUSE_INPUT_REPORT_MIN_SIZE + optional_data_len;
-
-        if (hvx_len <= BOOT_MOUSE_INPUT_REPORT_MAX_SIZE)
-        {
-            uint8_t                buffer[BOOT_MOUSE_INPUT_REPORT_MAX_SIZE];
-            ble_gatts_hvx_params_t hvx_params;
-            uint8_t              * p_host_rep_data;
-
-            err_code = blcm_link_ctx_get(p_hids->p_link_ctx_storage,
-                                         conn_handle,
-                                         (void *) &p_host_rep_data);
-            VERIFY_SUCCESS(err_code);
-
-            p_host_rep_data += sizeof(ble_hids_client_context_t) + BOOT_KB_INPUT_REPORT_MAX_SIZE +
-                               BOOT_KB_OUTPUT_REPORT_MAX_SIZE;
-
-            APP_ERROR_CHECK_BOOL(BOOT_MOUSE_INPUT_REPORT_MIN_SIZE == 3);
-
-            // Build buffer
-            buffer[0] = buttons;
-            buffer[1] = (uint8_t)x_delta;
-            buffer[2] = (uint8_t)y_delta;
-
-            if (optional_data_len > 0)
-            {
-                memcpy(&buffer[3], p_optional_data, optional_data_len);
-            }
-
-            // Store the new value in the host's context
-            memcpy(p_host_rep_data, buffer, hvx_len);
-
-            // Pass buffer to stack
-            memset(&hvx_params, 0, sizeof(hvx_params));
-
-            hvx_params.handle = p_hids->boot_mouse_inp_rep_handles.value_handle;
-            hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
-            hvx_params.offset = 0;
-            hvx_params.p_len  = &hvx_len;
-            hvx_params.p_data = buffer;
-
-            err_code = sd_ble_gatts_hvx(conn_handle, &hvx_params);
-            if ((err_code == NRF_SUCCESS) &&
-                (*hvx_params.p_len != BOOT_MOUSE_INPUT_REPORT_MIN_SIZE + optional_data_len)
-               )
-            {
-                err_code = NRF_ERROR_DATA_SIZE;
-            }
-        }
-        else
-        {
-            err_code = NRF_ERROR_DATA_SIZE;
-        }
-    }
-    else
-    {
-        err_code = NRF_ERROR_INVALID_STATE;
-    }
-
-    return err_code;
-}
-
-
-uint32_t ble_hids_outp_rep_get(ble_hids_t * p_hids,
-                               uint8_t      rep_index,
-                               uint16_t     len,
-                               uint8_t      offset,
-                               uint16_t     conn_handle,
-                               uint8_t    * p_outp_rep)
-{
-    VERIFY_PARAM_NOT_NULL(p_hids);
-    VERIFY_PARAM_NOT_NULL(p_outp_rep);
-
-    ret_code_t err_code;
-    uint8_t  * p_rep_data;
-    uint8_t    index;
-
-    if (rep_index >= p_hids->outp_rep_count)
-    {
-        return NRF_ERROR_INVALID_PARAM;
-    }
-
-    err_code = blcm_link_ctx_get(p_hids->p_link_ctx_storage,
-                                 conn_handle,
-                                 (void *) &p_rep_data);
-    VERIFY_SUCCESS(err_code);
-
-    p_rep_data += sizeof(ble_hids_client_context_t) + BOOT_KB_INPUT_REPORT_MAX_SIZE +
-                  BOOT_KB_OUTPUT_REPORT_MAX_SIZE + BOOT_MOUSE_INPUT_REPORT_MAX_SIZE;
-
-    for (index = 0; index < p_hids->inp_rep_count; index++)
-    {
-        p_rep_data += p_hids->p_inp_rep_init_array[index].max_len;
-    }
-
-    for (index = 0; index < rep_index; index++)
-    {
-        p_rep_data += p_hids->p_outp_rep_init_array[index].max_len;
-    }
-
-    // Copy the requested output report data
-    if (len + offset <= p_hids->p_outp_rep_init_array[rep_index].max_len)
-    {
-        memcpy(p_outp_rep, p_rep_data + offset, len);
-    }
-    else
-    {
-        return NRF_ERROR_INVALID_LENGTH;
-    }
-
-    return NRF_SUCCESS;
 }
 
 

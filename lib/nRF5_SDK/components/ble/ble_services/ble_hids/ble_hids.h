@@ -367,67 +367,9 @@ void ble_hids_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
 uint32_t ble_hids_inp_rep_send(ble_hids_t * p_hids,
                                uint8_t      rep_index,
                                uint16_t     len,
-                               uint8_t    * p_data,
+                               uint16_t    * p_data,
                                uint16_t     conn_handle);
 
-/**@brief Function for sending Boot Keyboard Input Report.
- *
- * @details Sends data on an Boot Keyboard Input Report characteristic.
- *
- * @param[in]   p_hids       HID Service structure.
- * @param[in]   len          Length of data to be sent.
- * @param[in]   p_data       Pointer to data to be sent.
- * @param[in]   conn_handle  Connection handle, where the notification will be sent.
- *
- * @return      NRF_SUCCESS on successful sending of the report, otherwise an error code.
- */
-uint32_t ble_hids_boot_kb_inp_rep_send(ble_hids_t * p_hids,
-                                       uint16_t     len,
-                                       uint8_t    * p_data,
-                                       uint16_t     conn_handle);
-
-/**@brief Function for sending Boot Mouse Input Report.
- *
- * @details Sends data on an Boot Mouse Input Report characteristic.
- *
- * @param[in]   p_hids              HID Service structure.
- * @param[in]   buttons             State of mouse buttons.
- * @param[in]   x_delta             Horizontal movement.
- * @param[in]   y_delta             Vertical movement.
- * @param[in]   optional_data_len   Length of optional part of Boot Mouse Input Report.
- * @param[in]   p_optional_data     Optional part of Boot Mouse Input Report.
- * @param[in]   conn_handle         Connection handle.
- *
- * @return      NRF_SUCCESS on successful sending of the report, otherwise an error code.
- */
-uint32_t ble_hids_boot_mouse_inp_rep_send(ble_hids_t * p_hids,
-                                          uint8_t      buttons,
-                                          int8_t       x_delta,
-                                          int8_t       y_delta,
-                                          uint16_t     optional_data_len,
-                                          uint8_t    * p_optional_data,
-                                          uint16_t     conn_handle);
-
-/**@brief Function for getting the current value of Output Report from the stack.
- *
- * @details Fetches the current value of the output report characteristic from the stack.
- *
- * @param[in]   p_hids      HID Service structure.
- * @param[in]   rep_index   Index of the characteristic (corresponding to the index in
- *                          ble_hids_t.outp_rep_array as passed to ble_hids_init()).
- * @param[in]   len         Length of output report needed.
- * @param[in]   offset      Offset in bytes to read from.
- * @param[in]   conn_handle Connection handle.
- * @param[out]  p_outp_rep  Pointer to the output report.
- *
- * @return      NRF_SUCCESS on successful read of the report, otherwise an error code.
- */
-uint32_t ble_hids_outp_rep_get(ble_hids_t * p_hids,
-                               uint8_t      rep_index,
-                               uint16_t     len,
-                               uint8_t      offset,
-                               uint16_t     conn_handle,
-                               uint8_t    * p_outp_rep);
 
 
 #ifdef __cplusplus
