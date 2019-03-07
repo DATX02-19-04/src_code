@@ -1378,7 +1378,7 @@ int main(void)
     app_timer_create(&turn_off_leds_timer, APP_TIMER_MODE_SINGLE_SHOT, turn_off_leds);
     app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, status_leds_function);
     app_timer_start(button_wake_timer, TIMER_MS(100), NULL);
-    app_timer_start(status_leds, TIMER_MS(10), NULL);
+   // app_timer_start(status_leds, TIMER_MS(10), NULL);
 
 
 
