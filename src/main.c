@@ -1305,14 +1305,32 @@ void button_function(void *p_context){
                             (inv_button_state >> 9  & PAD_BTN_START)  );  
 
           if(!(button_state & BTN_MASK(BTN_PRV))){
-              show_battery_status();
+                        printf("disconnect ble?\n");
+
+              int err_code = sd_ble_gap_disconnect(m_conn_handle,
+                                               BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+                                               
+              if (err_code != NRF_ERROR_INVALID_STATE)
+              {
+                  APP_ERROR_CHECK(err_code);
+              }
           }
 
           if(!(button_state & BTN_MASK(BTN_NXT))){
-              // What to do?
+              // Try discconnect and start advertising
+              printf("reconnect ble?\n");
+              if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
+              {
+                            printf("invalid ble?\n");
+
+                int err_code = ble_advertising_restart_without_whitelist(&m_advertising);
+                if (err_code != NRF_ERROR_INVALID_STATE)
+                {
+                    APP_ERROR_CHECK(err_code);
+                }
+              }
           }
 
-          ble_hids_inp_rep_send(&m_hids,0, sizeof(all_buttons), &all_buttons, m_conn_handle);
 
         }
 }
@@ -1325,7 +1343,7 @@ int main(void)
     // Initialize.
     log_init();
     timers_init();
-    //buttons_leds_init(&erase_bonds);
+    buttons_leds_init(&erase_bonds);
     power_management_init();
     ble_stack_init();
     scheduler_init();
