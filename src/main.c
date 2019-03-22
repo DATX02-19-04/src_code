@@ -566,28 +566,79 @@ static void hids_init(void)
     
     static uint8_t                     report_map_data[] =
     {
+                       //report id 1
+
       0x05,   0x01,                 // USAGE_PAGE (Generic Desktop)
         0x09,   0x04,                 // USAGE (Joypad)
         0xA1,   0x01,                 // COLLECTION (Application)
-          0x09, 0x01,                 // usage pointer
-          0xA1, 0x00,                 // collection physical
-            0x09, 0x30,                 // usage x
-            0x09, 0x31,                 // usage y
-            0x15, 0xFF,                 // logical min -1
-            0x25, 0x01,                 // logical max 1
-            0x95, 0x02,                 // report count 2
-            0x75, 0x02,                 // report size 2
-            0x81, 0x02,                 // input data var abs
-          0xc0,                       // end collectiion
+          0x09, 0x01,                 // USAGE POINTER
+          0xA1, 0x00, 
+            0x85, 0x01,            // COLLECTION PHYSICAL
+            0x09, 0x30,                 // USAGE X
+            0x09, 0x31,                 // USAGE Y
+            0x15, 0xFF,                 // LOGICAL MIN -1
+            0x25, 0x01,                 // LOGICAL MAX 1
+            0x95, 0x02,                 // REPORT COUNT 2
+            0x75, 0x02,                 // REPORT SIZE 2
+            0x81, 0x02,                 // INPUT DATA VAR ABS
+          0xc0,                       // END COLLECTION
             0x05, 0x09,                 // USAGE_PAGE (Button)
-            0x19, 0x01,
-            0x29, 0x0c,
+            0x19, 0x01,                 // USAGE MINIMUM (1)
+            0x29, 0x0c,                 // USAGE MAXIMUM (12)
             0x15, 0x00,                 // LOGICAL_MINIMUM (0)
             0x25, 0x01,                 // LOGICAL_MAXIMUM (1)
             0x95, 0x0c,                 // REPORT_COUNT (12)
             0x75, 0x01,                 // REPORT_SIZE (1)
             0x81, 0x02,                 // INPUT (Data,Var,Abs)
-        0xc0                        // End Collection (Application)
+         /*
+         #define PAD_BTN_RIGHT   0x0001
+#define PAD_BTN_UP      0x0008
+#define PAD_BTN_DOWN    0x0004
+#define PAD_BTN_LEFT    0x0002
+            0x09, 0x06,
+            0x05, 0x07,              //USAGE PAGE (Keyboard)
+            0x19, 0x04,             //USAGE MINIMUM (A)
+            0x29, 0x0c,             //USAGE MAXIMUM (B)
+            //0x07, 0x04,              //KEY A
+            //0x07, 0x1A,              //KEY W
+            //0x07, 0x07,              //KEY D
+            //0x07, 0x16,              //KEY S
+             
+            0x15, 0x00,                 // LOGICAL_MINIMUM (0)
+            0x25, 0x01,                 // LOGICAL_MAXIMUM (1)
+            0x95, 0x08,                 // REPORT_COUNT (4)
+            0x75, 0x01,                 // REPORT_SIZE (1)
+            0x81, 0x02,                 // INPUT (Data,Var,Abs)*/
+      0xc0 ,                       // End Collection (Application)
+     
+                     //report id 2
+      0x05, 0x01,                 //USAGE_PAGE (Generic Desktop)
+        0x09, 0x06,               //USAGE (Keyboard)
+        0xA1, 0x01,               //COLLECTION (Application)
+         0x85, 0x02,
+        0x05, 0x07,               //
+         // 0x19, 0x04,             //USAGE MINIMUM (A)
+         // 0x29, 0x10,             //USAGE MAXIMUM (RIGHT GUI)
+            0x09, 0x4F,
+            0x09, 0x50,
+            0x09, 0x51,
+            0x09, 0x52,
+         // 0x09, 0x04,              //KEY A
+         // 0x09, 0x1A,              //KEY W
+         // 0x09, 0x07,              //KEY D
+         // 0x09, 0x16,              //KEY S
+          0x15, 0x00,                 // LOGICAL_MINIMUM (0)
+          0x25, 0x01,                 // LOGICAL_MAXIMUM (1)
+          0x95, 0x04,                 // REPORT_COUNT (12)
+          0x75, 0x01,                 // REPORT_SIZE (1)
+          0x81, 0x02,                 // INPUT (Data,Var,Abs)
+          0x95, 0x04,
+          0x75, 0x01,
+          0x81, 0x01,
+          0xC0
+
+          
+
     };
 
 
@@ -1275,7 +1326,10 @@ void status_leds_function(void *p_context){
 
 static uint32_t default_state;
 static uint32_t button_state;
+static uint8_t report_state[3];
 static uint16_t all_buttons;
+static uint8_t firstbyte;
+static uint8_t secondbyte;
 
 void button_function(void *p_context){
         button_state = get_button_states();
@@ -1302,8 +1356,17 @@ void button_function(void *p_context){
                             (inv_button_state >> 23 & PAD_BTN_LB)     |     
                             (inv_button_state >> 18 & PAD_BTN_RB)     |     
                             (inv_button_state >> 11 & PAD_BTN_SELECT) | 
-                            (inv_button_state >> 9  & PAD_BTN_START)  );  
-
+                            (inv_button_state >> 9  & PAD_BTN_START)  ); 
+          firstbyte = 
+          //all_buttons = all_buttons >> 8;
+          report_state[0] = 2; //report id
+          report_state[1] = (uint8_t)all_buttons;
+          report_state[2] = (uint8_t)(all_buttons >> 8);
+          
+       //   report_state[2] = ((all_buttons << 8) & 0xF000);//
+          
+          
+           
           if(!(button_state & BTN_MASK(BTN_PRV))){
                         printf("disconnect ble?\n");
 
@@ -1330,6 +1393,7 @@ void button_function(void *p_context){
                 }
               }
           }
+         ble_hids_inp_rep_send(&m_hids,0, 2, report_state, m_conn_handle);
 
 
         }
