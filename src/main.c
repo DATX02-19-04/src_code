@@ -619,10 +619,10 @@ static void hids_init(void)
         0x05, 0x07,               //
          // 0x19, 0x04,             //USAGE MINIMUM (A)
          // 0x29, 0x10,             //USAGE MAXIMUM (RIGHT GUI)
-            0x09, 0x4F,
-            0x09, 0x50,
-            0x09, 0x51,
-            0x09, 0x52,
+            0x09, 0x4F,             //RIGHTARROW
+            0x09, 0x50,             //LEFTARROW
+            0x09, 0x51,             //DOWNARROW
+            0x09, 0x52,             //UPARROW
          // 0x09, 0x04,              //KEY A
          // 0x09, 0x1A,              //KEY W
          // 0x09, 0x07,              //KEY D
@@ -1369,19 +1369,20 @@ void button_function(void *p_context){
            
           if(!(button_state & BTN_MASK(BTN_PRV))){
                         printf("disconnect ble?\n");
-
-              int err_code = sd_ble_gap_disconnect(m_conn_handle,
+              sd_power_system_off();
+             /* int err_code = sd_ble_gap_disconnect(m_conn_handle,
                                                BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
                                                
               if (err_code != NRF_ERROR_INVALID_STATE)
               {
                   APP_ERROR_CHECK(err_code);
-              }
+              }*/
           }
 
           if(!(button_state & BTN_MASK(BTN_NXT))){
               // Try discconnect and start advertising
-              printf("reconnect ble?\n");
+              sd_power_system_off();
+             /* printf("reconnect ble?\n");
               if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
               {
                             printf("invalid ble?\n");
@@ -1391,7 +1392,7 @@ void button_function(void *p_context){
                 {
                     APP_ERROR_CHECK(err_code);
                 }
-              }
+              }*/
           }
          ble_hids_inp_rep_send(&m_hids,0, 2, report_state, m_conn_handle);
 
