@@ -92,7 +92,7 @@
 
 #define SHIFT_BUTTON_ID                     1                                          /**< Button used as 'SHIFT' Key. */
 
-#define DEVICE_NAME                         "Low Enery Low Cost Controller"                          /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                         "Low Energy Low Cost Controller"                          /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                   "JOYLESS"                      /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_BLE_OBSERVER_PRIO               3                                          /**< Application's BLE observer priority. You shouldn't need to modify this value. */
@@ -787,16 +787,21 @@ static void timers_start(void)
  */
 static void sleep_mode_enter(void)
 {
+
     ret_code_t err_code;
+   
 
     err_code = bsp_indication_set(BSP_INDICATE_IDLE);
     APP_ERROR_CHECK(err_code);
+    
+   
 
     // Prepare wakeup buttons.
     err_code = bsp_btn_ble_sleep_mode_prepare();
     APP_ERROR_CHECK(err_code);
 
     // Go to system-off mode (this function will not return; wakeup will cause a reset).
+
     err_code = sd_power_system_off();
     APP_ERROR_CHECK(err_code);
 }
@@ -1328,8 +1333,7 @@ static uint32_t default_state;
 static uint32_t button_state;
 static uint8_t report_state[3];
 static uint16_t all_buttons;
-static uint8_t firstbyte;
-static uint8_t secondbyte;
+
 
 void button_function(void *p_context){
         button_state = get_button_states();
@@ -1357,9 +1361,9 @@ void button_function(void *p_context){
                             (inv_button_state >> 18 & PAD_BTN_RB)     |     
                             (inv_button_state >> 11 & PAD_BTN_SELECT) | 
                             (inv_button_state >> 9  & PAD_BTN_START)  ); 
-          firstbyte = 
+           
           //all_buttons = all_buttons >> 8;
-          report_state[0] = 2; //report id
+          report_state[0] = 1; //report id
           report_state[1] = (uint8_t)all_buttons;
           report_state[2] = (uint8_t)(all_buttons >> 8);
           
@@ -1367,21 +1371,28 @@ void button_function(void *p_context){
           
           
            
-          if(!(button_state & BTN_MASK(BTN_PRV))){
+          if(!(button_state & BTN_MASK(DPAD_DOWN))){
                         printf("disconnect ble?\n");
-              sd_power_system_off();
+              //sd_power_system_off();
              /* int err_code = sd_ble_gap_disconnect(m_conn_handle,
                                                BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
                                                
               if (err_code != NRF_ERROR_INVALID_STATE)
               {
                   APP_ERROR_CHECK(err_code);
+
               }*/
+              //bsp_event_handler(BSP_EVENT_DISCONNECT);
+              //bsp_event_handler(BSP_EVENT_SLEEP);
+              app_timer_start(status_leds, TIMER_MS(1000), NULL);
+
+             // disconnect_and_sleep();
           }
 
-          if(!(button_state & BTN_MASK(BTN_NXT))){
+          if(!(button_state & BTN_MASK(PAD_BTN_UP))){
               // Try discconnect and start advertising
-              sd_power_system_off();
+              //nrf_delay_ms(1000);
+              //sd_power_system_off();
              /* printf("reconnect ble?\n");
               if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
               {
@@ -1394,13 +1405,24 @@ void button_function(void *p_context){
                 }
               }*/
           }
-         ble_hids_inp_rep_send(&m_hids,0, 2, report_state, m_conn_handle);
+         ble_hids_inp_rep_send(&m_hids,0, 3, report_state, m_conn_handle);
 
 
         }
 }
 /**@brief Function for application main entry.
  */
+
+void disconnect_and_sleep(void){
+    if(m_conn_handle != BLE_CONN_HANDLE_INVALID){
+        int err_code;
+        err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        APP_ERROR_CHECK(err_code);
+    }
+    sleep_mode_enter();
+    while(true);
+}
+
 int main(void)
 {
     bool erase_bonds;
@@ -1421,46 +1443,53 @@ int main(void)
     peer_manager_init();
 
     // Set if pins use pull or no pull
+        
     nrf_gpio_pin_pull_t pull_config_in_use = NRF_GPIO_PIN_NOPULL;
+    nrf_gpio_pin_sense_t sense_config_in_use = NRF_GPIO_PIN_SENSE_LOW;
 
-    nrf_gpio_cfg_sense_input(DPAD_DOWN,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_LEFT,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_RIGTH,  pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_UP,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(DPAD_DOWN,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_LEFT,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_RIGTH,  pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_UP,     pull_config_in_use, sense_config_in_use);
+   
+    nrf_gpio_cfg_sense_input(BTN_A,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_B,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_X,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_Y,       pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_A,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_B,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_X,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_Y,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(BTN_SELCT,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_START,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_L,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_R,       pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_SELCT,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_START,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_L,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_R,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+/*
+   // nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+   // nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, sense_config_in_use);
 
-    
     
     for(int i = 0; i < 8; i++){
           nrf_gpio_cfg_output(LED_PINS[i]);
     }
-
-    nrf_gpio_cfg_output(POWER_PIN);
+*/
+    
+    
+    //nrf_gpio_cfg_output(POWER_PIN);
 
     // Start execution.
     NRF_LOG_INFO("HID Gamepad started.");
     timers_start();
-
+    int err_code;
+    //err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
     advertising_start(erase_bonds);
     default_state = get_button_states();
-
+   // printf("ee");
+    
     
     app_timer_create(&button_wake_timer, APP_TIMER_MODE_REPEATED, button_function);
     app_timer_create(&turn_off_leds_timer, APP_TIMER_MODE_SINGLE_SHOT, turn_off_leds);
-    app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, status_leds_function);
-    app_timer_start(button_wake_timer, TIMER_MS(100), NULL);
+    app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, disconnect_and_sleep);
+    app_timer_start(button_wake_timer, TIMER_MS(50), NULL);
    // app_timer_start(status_leds, TIMER_MS(10), NULL);
 
 
@@ -1470,6 +1499,7 @@ int main(void)
     for (;;)
     {
         idle_state_handle();
+        //sleep_mode_enter();
     }
 }
 
