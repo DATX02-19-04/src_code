@@ -1371,7 +1371,8 @@ void button_function(void *p_context){
           
           
            
-          if(!(button_state & BTN_MASK(DPAD_DOWN))){
+          if(!(button_state & BTN_MASK(DPAD_UP))){
+               
                         printf("disconnect ble?\n");
               //sd_power_system_off();
              /* int err_code = sd_ble_gap_disconnect(m_conn_handle,
@@ -1386,7 +1387,7 @@ void button_function(void *p_context){
               //bsp_event_handler(BSP_EVENT_SLEEP);
               app_timer_start(status_leds, TIMER_MS(1000), NULL);
 
-             // disconnect_and_sleep();
+              //disconnect_and_sleep();
           }
 
           if(!(button_state & BTN_MASK(PAD_BTN_UP))){
@@ -1413,11 +1414,13 @@ void button_function(void *p_context){
 /**@brief Function for application main entry.
  */
 
-void disconnect_and_sleep(void){
+void disconnect_and_sleep(){
     if(m_conn_handle != BLE_CONN_HANDLE_INVALID){
         int err_code;
+        printf("disconnecting");
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
+        printf("disconnecting");
     }
     sleep_mode_enter();
     while(true);
@@ -1425,6 +1428,7 @@ void disconnect_and_sleep(void){
 
 int main(void)
 {
+    printf("test");
     bool erase_bonds;
 
     // Initialize.
@@ -1444,7 +1448,7 @@ int main(void)
 
     // Set if pins use pull or no pull
         
-    nrf_gpio_pin_pull_t pull_config_in_use = NRF_GPIO_PIN_NOPULL;
+    nrf_gpio_pin_pull_t pull_config_in_use = NRF_GPIO_PIN_PULLUP;
     nrf_gpio_pin_sense_t sense_config_in_use = NRF_GPIO_PIN_SENSE_LOW;
 
     nrf_gpio_cfg_sense_input(DPAD_DOWN,   pull_config_in_use, sense_config_in_use);
@@ -1462,10 +1466,9 @@ int main(void)
     nrf_gpio_cfg_sense_input(BTN_L,       pull_config_in_use, sense_config_in_use);
     nrf_gpio_cfg_sense_input(BTN_R,       pull_config_in_use, sense_config_in_use);
 
+    nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, sense_config_in_use);
 /*
-   // nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, sense_config_in_use);
-
-   // nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, sense_config_in_use);
 
     
     for(int i = 0; i < 8; i++){
@@ -1483,9 +1486,9 @@ int main(void)
     //err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
     advertising_start(erase_bonds);
     default_state = get_button_states();
-   // printf("ee");
-    
-    
+    printf("ee");
+    printf("test");
+   // disconnect_and_sleep();
     app_timer_create(&button_wake_timer, APP_TIMER_MODE_REPEATED, button_function);
     app_timer_create(&turn_off_leds_timer, APP_TIMER_MODE_SINGLE_SHOT, turn_off_leds);
     app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, disconnect_and_sleep);
