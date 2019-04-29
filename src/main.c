@@ -1279,7 +1279,11 @@ void turn_off_leds(void *p_context){
   for(int i = 0; i<8; i++){
     nrf_gpio_pin_clear(LED_PINS[i]);
   }
-  app_timer_start(status_leds, TIMER_MS(100), NULL);
+  //app_timer_start(status_leds, TIMER_MS(100), NULL);
+
+
+                sd_power_system_off();
+
 }
 
 // nightrider with leds(knappsatskort)
@@ -1323,6 +1327,17 @@ void status_leds_function(void *p_context){
   }
 }
 
+void disconnect_and_sleep(void){
+    if(m_conn_handle != BLE_CONN_HANDLE_INVALID){
+        int err_code;
+        err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        APP_ERROR_CHECK(err_code);
+    }
+    nrf_gpio_cfg_sense_set(BTN_PRV, NRF_GPIO_PIN_NOSENSE);
+    nrf_gpio_cfg_sense_set(BTN_NXT, NRF_GPIO_PIN_NOSENSE);
+    sleep_mode_enter();
+    while(true);
+}
 
 static uint32_t default_state;
 static uint32_t button_state;
@@ -1333,19 +1348,19 @@ static uint8_t secondbyte;
 
 void button_function(void *p_context){
         button_state = get_button_states();
-        
+        printf("x");
         if(button_state != prev_state){
           prev_state = button_state;
           all_buttons = 0;
 
           if(button_state == default_state) {
-              printf("\e[1;1H\e[2J"); // clear debug console, for debug purpose
+              //printf("\e[1;1H\e[2J"); // clear debug console, for debug purpose
           }
 
           // swap one's and zero's
           uint32_t inv_button_state = button_state ^ 0xFFFFFFFF;
 
-          all_buttons |= (  (inv_button_state >> 4  & PAD_BTN_RIGHT)  |
+          all_buttons = (  (inv_button_state >> 4  & PAD_BTN_RIGHT)  |
                             (inv_button_state >> 29 & PAD_BTN_LEFT)   | 
                             (inv_button_state >> 27 & PAD_BTN_DOWN)   |
                             (inv_button_state >> 25 & PAD_BTN_UP)     |
@@ -1357,31 +1372,23 @@ void button_function(void *p_context){
                             (inv_button_state >> 18 & PAD_BTN_RB)     |     
                             (inv_button_state >> 11 & PAD_BTN_SELECT) | 
                             (inv_button_state >> 9  & PAD_BTN_START)  ); 
-          firstbyte = 
+
           //all_buttons = all_buttons >> 8;
-          report_state[0] = 2; //report id
+          report_state[0] = 1; //report id
           report_state[1] = (uint8_t)all_buttons;
-          report_state[2] = (uint8_t)(all_buttons >> 8);
-          
-       //   report_state[2] = ((all_buttons << 8) & 0xF000);//
-          
+          report_state[2] = (uint8_t)(all_buttons >> 8);   
           
            
           if(!(button_state & BTN_MASK(BTN_PRV))){
-                        printf("disconnect ble?\n");
-              sd_power_system_off();
-             /* int err_code = sd_ble_gap_disconnect(m_conn_handle,
-                                               BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-                                               
-              if (err_code != NRF_ERROR_INVALID_STATE)
-              {
-                  APP_ERROR_CHECK(err_code);
-              }*/
+              app_timer_start(status_leds, TIMER_MS(1000), NULL);
+
+
           }
 
           if(!(button_state & BTN_MASK(BTN_NXT))){
               // Try discconnect and start advertising
-              sd_power_system_off();
+              //sd_power_system_off();
+              //sleep_mode_enter();
              /* printf("reconnect ble?\n");
               if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
               {
@@ -1422,29 +1429,32 @@ int main(void)
 
     // Set if pins use pull or no pull
     nrf_gpio_pin_pull_t pull_config_in_use = NRF_GPIO_PIN_NOPULL;
+    nrf_gpio_pin_sense_t sense_config_in_use = NRF_GPIO_PIN_SENSE_LOW;
 
-    nrf_gpio_cfg_sense_input(DPAD_DOWN,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_LEFT,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_RIGTH,  pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(DPAD_UP,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(DPAD_DOWN,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_LEFT,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_RIGTH,  pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(DPAD_UP,     pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_A,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_B,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_X,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_Y,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(BTN_A,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_B,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_X,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_Y,       pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_SELCT,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_START,   pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_L,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_R,       pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(BTN_SELCT,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_START,   pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_L,       pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_R,       pull_config_in_use, sense_config_in_use);
 
-    nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
-    nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, NRF_GPIO_PIN_SENSE_HIGH);
+    nrf_gpio_cfg_sense_input(BTN_PRV,     pull_config_in_use, sense_config_in_use);
+    nrf_gpio_cfg_sense_input(BTN_NXT,     pull_config_in_use, sense_config_in_use);
+
+
 
     
-    
+    // init led pins
     for(int i = 0; i < 8; i++){
-          nrf_gpio_cfg_output(LED_PINS[i]);
+          //nrf_gpio_cfg_output(LED_PINS[i]);
     }
 
     nrf_gpio_cfg_output(POWER_PIN);
@@ -1459,9 +1469,8 @@ int main(void)
     
     app_timer_create(&button_wake_timer, APP_TIMER_MODE_REPEATED, button_function);
     app_timer_create(&turn_off_leds_timer, APP_TIMER_MODE_SINGLE_SHOT, turn_off_leds);
-    app_timer_create(&status_leds, APP_TIMER_MODE_REPEATED, status_leds_function);
-    app_timer_start(button_wake_timer, TIMER_MS(100), NULL);
-   // app_timer_start(status_leds, TIMER_MS(10), NULL);
+    app_timer_create(&status_leds, APP_TIMER_MODE_SINGLE_SHOT, disconnect_and_sleep);
+    app_timer_start(button_wake_timer, TIMER_MS(50), NULL);
 
 
 

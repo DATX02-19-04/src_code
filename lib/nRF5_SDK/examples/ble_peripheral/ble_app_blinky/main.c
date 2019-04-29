@@ -566,7 +566,7 @@ int main(void)
 {
     // Initialize.
     log_init();
-    leds_init();
+    //leds_init();
     timers_init();
     buttons_init();
     power_management_init();
@@ -576,10 +576,15 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
+    
+    nrf_gpio_cfg_output(8);
+    nrf_gpio_pin_set(8);
 
     // Start execution.
     NRF_LOG_INFO("Blinky example started.");
     advertising_start();
+    printf("ledss");
+    
 
     // Enter main loop.
     for (;;)

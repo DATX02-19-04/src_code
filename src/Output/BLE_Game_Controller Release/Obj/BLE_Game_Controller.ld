@@ -14,16 +14,16 @@ SECTIONS
   __FLASH_segment_end__ = 0x00080000;
   __FLASH_segment_size__ = 0x00080000;
 
-  __HEAPSIZE__ = 8192;
+  __HEAPSIZE__ = 2048;
   __STACKSIZE_PROCESS__ = 0;
-  __STACKSIZE__ = 8192;
+  __STACKSIZE__ = 2048;
 
   __reserved_ram_load_start__ = 0x20000000;
   .reserved_ram 0x20000000 (NOLOAD) : AT(0x20000000)
   {
     __reserved_ram_start__ = .;
     *(.reserved_ram .reserved_ram.*)
-    . = MAX(__reserved_ram_start__ + 0x20002218-0x20000000 , .);
+    . = MAX(__reserved_ram_start__ + 0x20001b48-0x20000000 , .);
   }
   __reserved_ram_end__ = __reserved_ram_start__ + SIZEOF(.reserved_ram);
   __reserved_ram_size__ = SIZEOF(.reserved_ram);
@@ -31,8 +31,8 @@ SECTIONS
 
   . = ASSERT(__reserved_ram_start__ == __reserved_ram_end__ || (__reserved_ram_end__ >= __RAM_segment_start__ && __reserved_ram_end__ <= __RAM_segment_end__) , "error: .reserved_ram is too large to fit in RAM memory segment");
 
-  __vectors_ram_load_start__ = 0x20002218;
-  .vectors_ram 0x20002218 (NOLOAD) : AT(0x20002218)
+  __vectors_ram_load_start__ = 0x20001b48;
+  .vectors_ram 0x20001b48 (NOLOAD) : AT(0x20001b48)
   {
     __vectors_ram_start__ = .;
     __app_ram_start__ =   __vectors_ram_start__;
@@ -63,7 +63,7 @@ SECTIONS
   {
     __reserved_flash_start__ = .;
     *(.reserved_flash .reserved_flash.*)
-    . = MAX(__reserved_flash_start__ + 0x26000-0x0 , .);
+    . = MAX(__reserved_flash_start__ + 0x19000-0x0 , .);
   }
   __reserved_flash_end__ = __reserved_flash_start__ + SIZEOF(.reserved_flash);
   __reserved_flash_size__ = SIZEOF(.reserved_flash);
@@ -71,8 +71,8 @@ SECTIONS
 
   . = ASSERT(__reserved_flash_start__ == __reserved_flash_end__ || (__reserved_flash_end__ >= __FLASH_segment_start__ && __reserved_flash_end__ <= __FLASH_segment_end__) , "error: .reserved_flash is too large to fit in FLASH memory segment");
 
-  __vectors_load_start__ = 0x26000;
-  .vectors 0x26000 : AT(0x26000)
+  __vectors_load_start__ = 0x19000;
+  .vectors 0x19000 : AT(0x19000)
   {
     __vectors_start__ = .;
     *(.vectors .vectors.*)
@@ -585,8 +585,8 @@ SECTIONS
 
   . = ASSERT(__heap_start__ == __heap_end__ || (__heap_end__ >= __RAM_segment_start__ && __heap_end__ <= __RAM_segment_end__) , "error: .heap is too large to fit in RAM memory segment");
 
-  __stack_load_start__ = __RAM_segment_end__ - 8192;
-  .stack __RAM_segment_end__ - 8192 (NOLOAD) : AT(__RAM_segment_end__ - 8192)
+  __stack_load_start__ = __RAM_segment_end__ - 2048;
+  .stack __RAM_segment_end__ - 2048 (NOLOAD) : AT(__RAM_segment_end__ - 2048)
   {
     __stack_start__ = .;
     __StackLimit =   __stack_start__;
